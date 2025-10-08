@@ -1,3 +1,9 @@
+## 0.0.2
+
+### Updated Flutter Support
+
+* **Lowered Flutter Minimum Version**: Reduced minimum Flutter version requirement from 3.24.0 to 3.20.0 for broader compatibility
+
 ## 0.0.1
 
 ### Initial Release
