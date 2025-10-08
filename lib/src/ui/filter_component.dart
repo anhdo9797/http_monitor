@@ -123,7 +123,7 @@ class _FilterComponentState extends State<FilterComponent> {
         color: Theme.of(context).cardColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -193,12 +193,13 @@ class _FilterComponentState extends State<FilterComponent> {
             spacing: 8,
             runSpacing: 8,
             children: _availableMethods.map((method) {
-              final isSelected = _currentFilter.methods?.contains(method) ?? false;
+              final isSelected =
+                  _currentFilter.methods?.contains(method) ?? false;
               return FilterChip(
                 label: Text(method),
                 selected: isSelected,
                 onSelected: (_) => _toggleMethod(method),
-                selectedColor: _getMethodColor(method).withValues(alpha: 0.2),
+                selectedColor: _getMethodColor(method).withOpacity(0.2),
                 checkmarkColor: _getMethodColor(method),
               );
             }).toList(),
@@ -218,12 +219,13 @@ class _FilterComponentState extends State<FilterComponent> {
             spacing: 8,
             runSpacing: 8,
             children: _availableStatusGroups.map((group) {
-              final isSelected = _currentFilter.statusGroups?.contains(group) ?? false;
+              final isSelected =
+                  _currentFilter.statusGroups?.contains(group) ?? false;
               return FilterChip(
                 label: Text(group),
                 selected: isSelected,
                 onSelected: (_) => _toggleStatusGroup(group),
-                selectedColor: _getStatusGroupColor(group).withValues(alpha: 0.2),
+                selectedColor: _getStatusGroupColor(group).withOpacity(0.2),
                 checkmarkColor: _getStatusGroupColor(group),
               );
             }).toList(),

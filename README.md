@@ -21,8 +21,18 @@ Perfect for debugging API issues, analyzing network behavior, and monitoring HTT
 - 🧹 **Auto Cleanup**: Configurable automatic cleanup of old logs
 - 🔒 **Sensitive Data Protection**: Automatic sanitization of sensitive headers
 
+## Requirements
+
+- **Flutter SDK**: >= 3.24.0
+- **Dart SDK**: >= 3.4.0
+
+This package is tested and compatible with:
+- Flutter 3.24.x to 3.35.x
+- Dart 3.4.x to 3.7.x
+
 ## Table of Contents
 
+- [Requirements](#requirements)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)

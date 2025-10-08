@@ -54,7 +54,8 @@ class _LogDetailViewState extends State<LogDetailView> {
             ),
           // Toggle raw view
           IconButton(
-            icon: Icon(_showRawView ? Icons.format_align_left : Icons.data_object),
+            icon: Icon(
+                _showRawView ? Icons.format_align_left : Icons.data_object),
             tooltip: _showRawView ? 'Formatted View' : 'Raw View',
             onPressed: () {
               setState(() {
@@ -228,7 +229,7 @@ class _LogDetailViewState extends State<LogDetailView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: color, width: 1),
       ),
@@ -260,7 +261,7 @@ class _LogDetailViewState extends State<LogDetailView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
@@ -278,7 +279,7 @@ class _LogDetailViewState extends State<LogDetailView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.grey.withValues(alpha: 0.1),
+        color: Colors.grey.withOpacity(0.1),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(

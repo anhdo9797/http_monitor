@@ -126,7 +126,8 @@ class _HttpMonitorWidgetState extends State<HttpMonitorWidget> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Clear All Logs'),
-        content: const Text('Are you sure you want to delete all logs? This action cannot be undone.'),
+        content: const Text(
+            'Are you sure you want to delete all logs? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -180,7 +181,8 @@ class _HttpMonitorWidgetState extends State<HttpMonitorWidget> {
           actions: [
             // Filter toggle button
             IconButton(
-              icon: Icon(_showFilter ? Icons.filter_list_off : Icons.filter_list),
+              icon:
+                  Icon(_showFilter ? Icons.filter_list_off : Icons.filter_list),
               tooltip: _showFilter ? 'Hide Filters' : 'Show Filters',
               onPressed: () {
                 setState(() {
@@ -227,7 +229,7 @@ class _HttpMonitorWidgetState extends State<HttpMonitorWidget> {
         bottomNavigationBar: _logs.isNotEmpty
             ? Container(
                 padding: const EdgeInsets.all(8),
-                color: theme.primaryColor.withValues(alpha: 0.1),
+                color: theme.primaryColor.withOpacity(0.1),
                 child: Text(
                   '${_logs.length} log${_logs.length == 1 ? '' : 's'}',
                   textAlign: TextAlign.center,
