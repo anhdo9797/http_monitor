@@ -1,0 +1,85 @@
+
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Flutter/Dart/Pub related
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+linux/Flutter/
+macos/Flutter/
+windows/Flutter/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+.fvm
+
+# Generated file
+*.g.dart
+*.gen.dart
+*.freezed.dart
+*.lock
+/generated/intl
+
+# FVM Version Cache
+.fvm/
+.fvmrc
+/vscode/settings.json
+ 
+ 
+.roo/
+memory-bank/
+ 
+# Ignore environment files but keep the example
+.env
+.env.*
+!.env.example
+ 
+fastlane/.env*
+!fastlane/.env.example
+ 
+fastlane/report.xml
+android/.kotlin/
+
+Runner.ipa
+Runner.app.dSYM.zip
+
+
+.env*
+!.env.example
+
+# FVM Version Cache
+.fvm/
+
+.specs-pilot
+spec.md
+CHANGELOG.md
