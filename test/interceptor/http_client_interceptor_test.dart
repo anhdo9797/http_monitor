@@ -33,7 +33,7 @@ void main() {
 
     tearDown(() async {
       await repository.clearAllLogs();
-      logger.clearPendingRequests();
+      await logger.clearPendingRequests();
       client.clearRequestMap();
       client.close();
       await database.close();
@@ -42,7 +42,8 @@ void main() {
     group('GET requests', () {
       test('should capture successful GET request', () async {
         try {
-          await client.get(Uri.parse('https://jsonplaceholder.typicode.com/posts/1'));
+          await client
+              .get(Uri.parse('https://jsonplaceholder.typicode.com/posts/1'));
         } catch (_) {
           // Ignore network errors in test environment
         }
@@ -98,8 +99,10 @@ void main() {
           final log = logs.first;
           expect(log.headers, isNotNull);
           // Headers might be normalized to lowercase
-          expect(log.headers.containsKey('x-custom-header') ||
-                 log.headers.containsKey('X-Custom-Header'), isTrue);
+          expect(
+              log.headers.containsKey('x-custom-header') ||
+                  log.headers.containsKey('X-Custom-Header'),
+              isTrue);
         }
       });
     });
@@ -158,7 +161,8 @@ void main() {
           await client.put(
             Uri.parse('https://jsonplaceholder.typicode.com/posts/1'),
             headers: {'Content-Type': 'application/json'},
-            body: '{"title":"Updated Post","body":"Updated content","userId":1}',
+            body:
+                '{"title":"Updated Post","body":"Updated content","userId":1}',
           );
         } catch (_) {
           // Ignore network errors
@@ -263,9 +267,12 @@ void main() {
         );
 
         try {
-          await errorClient.get(
-            Uri.parse('https://invalid-domain-that-does-not-exist-12345.com/test'),
-          ).timeout(const Duration(milliseconds: 500));
+          await errorClient
+              .get(
+                Uri.parse(
+                    'https://invalid-domain-that-does-not-exist-12345.com/test'),
+              )
+              .timeout(const Duration(milliseconds: 500));
         } catch (_) {
           // Expected to fail
         }
@@ -285,7 +292,8 @@ void main() {
       test('should capture 404 errors', () async {
         try {
           await client.get(
-            Uri.parse('https://jsonplaceholder.typicode.com/nonexistent-endpoint-12345'),
+            Uri.parse(
+                'https://jsonplaceholder.typicode.com/nonexistent-endpoint-12345'),
           );
         } catch (_) {
           // Expected to fail with 404
@@ -303,7 +311,7 @@ void main() {
 
     group('pending requests tracking', () {
       test('should track pending requests', () async {
-        expect(client.pendingRequestCount, 0);
+        expect(await client.pendingRequestCount, 0);
 
         // Start a request but don't await it immediately
         final future = client.get(
@@ -311,7 +319,7 @@ void main() {
         );
 
         // There might be a pending request
-        expect(client.pendingRequestCount, greaterThanOrEqualTo(0));
+        expect(await client.pendingRequestCount, greaterThanOrEqualTo(0));
 
         try {
           await future;
@@ -322,15 +330,14 @@ void main() {
         await Future.delayed(const Duration(milliseconds: 200));
 
         // After completion, pending count should be 0
-        expect(client.pendingRequestCount, 0);
+        expect(await client.pendingRequestCount, 0);
       });
 
       test('should clear request map', () async {
         // Just test the clear functionality without making actual request
         client.clearRequestMap();
-        expect(client.pendingRequestCount, 0);
+        expect(await client.pendingRequestCount, 0);
       });
     });
   });
 }
-

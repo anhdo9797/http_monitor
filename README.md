@@ -7,6 +7,10 @@ A comprehensive HTTP tracking and debugging solution for Flutter applications. M
 
 Perfect for debugging API issues, analyzing network behavior, and monitoring HTTP traffic in both development and production environments.
 
+## Preview
+
+![HTTP Monitor Preview](preview/app_preview.gif)
+
 ## Features
 
 - 🔍 **Automatic HTTP Interception**: Capture all HTTP requests and responses automatically
@@ -20,6 +24,7 @@ Perfect for debugging API issues, analyzing network behavior, and monitoring HTT
 - 📱 **Cross-Platform**: Works on Android, iOS, Web, and Desktop
 - 🧹 **Auto Cleanup**: Configurable automatic cleanup of old logs
 - 🔒 **Sensitive Data Protection**: Automatic sanitization of sensitive headers
+- 🚀 **Concurrent Requests**: Thread-safe handling of multiple simultaneous HTTP requests
 
 ## Requirements
 
@@ -32,26 +37,44 @@ This package is tested and compatible with:
 
 ## Table of Contents
 
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Configuration](#configuration)
-- [Usage](#usage)
-  - [Dio Integration](#dio-integration)
-  - [http.Client Integration](#httpclient-integration)
-  - [Manual Logging](#manual-logging)
-  - [Displaying the Monitor UI](#displaying-the-monitor-ui)
-  - [Floating Monitor Button](#floating-monitor-button)
-- [Advanced Features](#advanced-features)
-  - [Filtering Logs](#filtering-logs)
-  - [Exporting as cURL](#exporting-as-curl)
-  - [Programmatic Access](#programmatic-access)
-  - [Custom Cleanup](#custom-cleanup)
-- [Configuration Options](#configuration-options)
-- [Best Practices](#best-practices)
-- [Example](#example)
-- [Contributing](#contributing)
-- [License](#license)
+- [HTTP Monitor](#http-monitor)
+  - [Preview](#preview)
+  - [Features](#features)
+  - [Requirements](#requirements)
+  - [Table of Contents](#table-of-contents)
+  - [Installation](#installation)
+  - [Quick Start](#quick-start)
+    - [1. Initialize the Monitor](#1-initialize-the-monitor)
+    - [2. Add Interceptors](#2-add-interceptors)
+      - [For Dio:](#for-dio)
+      - [For http.Client:](#for-httpclient)
+    - [3. Display the Monitor Widget](#3-display-the-monitor-widget)
+  - [Configuration](#configuration)
+    - [Preset Configurations](#preset-configurations)
+  - [Usage](#usage)
+    - [Dio Integration](#dio-integration)
+    - [http.Client Integration](#httpclient-integration)
+    - [Manual Logging](#manual-logging)
+    - [Displaying the Monitor UI](#displaying-the-monitor-ui)
+    - [Floating Monitor Button](#floating-monitor-button)
+  - [Advanced Features](#advanced-features)
+    - [Filtering Logs](#filtering-logs)
+    - [Exporting as cURL](#exporting-as-curl)
+    - [Programmatic Access](#programmatic-access)
+    - [Custom Cleanup](#custom-cleanup)
+  - [Configuration Options](#configuration-options)
+  - [Best Practices](#best-practices)
+    - [1. Disable in Production](#1-disable-in-production)
+    - [2. Limit Log Storage](#2-limit-log-storage)
+    - [3. Protect Sensitive Data](#3-protect-sensitive-data)
+    - [4. Clean Up Resources](#4-clean-up-resources)
+    - [5. Use Floating Button for Easy Access](#5-use-floating-button-for-easy-access)
+  - [Example](#example)
+  - [Contributing](#contributing)
+    - [Development Setup](#development-setup)
+  - [License](#license)
+  - [Support](#support)
+  - [Changelog](#changelog)
 
 ## Installation
 

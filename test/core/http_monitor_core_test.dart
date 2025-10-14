@@ -292,7 +292,7 @@ void main() {
       });
 
       test('should delete logs exceeding limit', () async {
-        final deleted = await HttpMonitor.instance.deleteExceedingLimit(2);
+        await HttpMonitor.instance.deleteExceedingLimit(2);
         await Future.delayed(const Duration(milliseconds: 100));
 
         final count = await HttpMonitor.instance.getLogCount();
@@ -330,4 +330,3 @@ void main() {
     });
   });
 }
-

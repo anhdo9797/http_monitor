@@ -4,9 +4,11 @@ library;
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import '../core/http_logger.dart';
+import '../core/thread_safe_map.dart';
 import '../model/http_request_data.dart';
 import '../model/http_response_data.dart';
 import '../model/http_error_data.dart';
+import '../utils/request_id_generator.dart';
 
 /// Dio interceptor for capturing HTTP requests and responses
 ///
@@ -14,35 +16,39 @@ import '../model/http_error_data.dart';
 /// capture all requests, responses, and errors for monitoring.
 class HttpMonitorDioInterceptor extends Interceptor {
   final HttpLogger _logger;
-  final Map<RequestOptions, _RequestInfo> _requestMap = {};
+  final ThreadSafeMap<RequestOptions, _RequestInfo> _requestMap;
 
   /// Creates a new HttpMonitorDioInterceptor instance
-  HttpMonitorDioInterceptor({required HttpLogger logger}) : _logger = logger;
+  HttpMonitorDioInterceptor({required HttpLogger logger})
+      : _logger = logger,
+        _requestMap = ThreadSafeMap<RequestOptions, _RequestInfo>();
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    final requestId = _generateRequestId();
+    final requestId = RequestIdGenerator.generate();
     final timestamp = DateTime.now();
 
     // Store request info for later matching with response
-    _requestMap[options] = _RequestInfo(
+    final requestInfo = _RequestInfo(
       id: requestId,
       timestamp: timestamp,
     );
 
-    // Extract request data
-    final requestData = HttpRequestData(
-      id: requestId,
-      url: options.uri.toString(),
-      method: options.method,
-      headers: _extractHeaders(options.headers),
-      params: _extractQueryParams(options.queryParameters),
-      body: _extractRequestBody(options.data),
-      timestamp: timestamp,
-    );
+    _requestMap.put(options, requestInfo).then((_) {
+      // Extract request data
+      final requestData = HttpRequestData(
+        id: requestId,
+        url: options.uri.toString(),
+        method: options.method,
+        headers: _extractHeaders(options.headers),
+        params: _extractQueryParams(options.queryParameters),
+        body: _extractRequestBody(options.data),
+        timestamp: timestamp,
+      );
 
-    // Log request asynchronously
-    _logger.logRequest(requestData);
+      // Log request asynchronously
+      _logger.logRequest(requestData);
+    });
 
     // Continue with the request
     handler.next(options);
@@ -50,23 +56,28 @@ class HttpMonitorDioInterceptor extends Interceptor {
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    final requestInfo = _requestMap.remove(response.requestOptions);
-    if (requestInfo != null) {
-      final duration = DateTime.now().difference(requestInfo.timestamp).inMilliseconds;
+    _requestMap.get(response.requestOptions).then((requestInfo) async {
+      if (requestInfo != null) {
+        final duration =
+            DateTime.now().difference(requestInfo.timestamp).inMilliseconds;
 
-      // Extract response data
-      final responseData = HttpResponseData(
-        requestId: requestInfo.id,
-        statusCode: response.statusCode ?? 0,
-        headers: _extractHeaders(response.headers.map),
-        body: _extractResponseBody(response.data),
-        duration: duration,
-        timestamp: DateTime.now(),
-      );
+        // Extract response data
+        final responseData = HttpResponseData(
+          requestId: requestInfo.id,
+          statusCode: response.statusCode ?? 0,
+          headers: _extractHeaders(response.headers.map),
+          body: _extractResponseBody(response.data),
+          duration: duration,
+          timestamp: DateTime.now(),
+        );
 
-      // Log response asynchronously
-      _logger.logResponse(responseData);
-    }
+        // Log response asynchronously
+        await _logger.logResponse(responseData);
+      }
+
+      // Remove from map
+      await _requestMap.remove(response.requestOptions);
+    });
 
     // Continue with the response
     handler.next(response);
@@ -74,38 +85,38 @@ class HttpMonitorDioInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    final requestInfo = _requestMap.remove(err.requestOptions);
-    if (requestInfo != null) {
-      final duration = DateTime.now().difference(requestInfo.timestamp).inMilliseconds;
+    _requestMap.get(err.requestOptions).then((requestInfo) async {
+      if (requestInfo != null) {
+        final duration =
+            DateTime.now().difference(requestInfo.timestamp).inMilliseconds;
 
-      // Extract error data
-      final errorData = HttpErrorData(
-        requestId: requestInfo.id,
-        message: err.message ?? 'Unknown error',
-        type: err.type.toString(),
-        statusCode: err.response?.statusCode,
-        headers: err.response?.headers.map != null
-            ? _extractHeaders(err.response!.headers.map)
-            : null,
-        body: err.response?.data != null
-            ? _extractResponseBody(err.response!.data)
-            : null,
-        duration: duration,
-        timestamp: DateTime.now(),
-        stackTrace: err.stackTrace.toString(),
-      );
+        // Extract error data
+        final errorData = HttpErrorData(
+          requestId: requestInfo.id,
+          message: err.message ?? 'Unknown error',
+          type: err.type.toString(),
+          statusCode: err.response?.statusCode,
+          headers: err.response?.headers.map != null
+              ? _extractHeaders(err.response!.headers.map)
+              : null,
+          body: err.response?.data != null
+              ? _extractResponseBody(err.response!.data)
+              : null,
+          duration: duration,
+          timestamp: DateTime.now(),
+          stackTrace: err.stackTrace.toString(),
+        );
 
-      // Log error asynchronously
-      _logger.logError(errorData);
-    }
+        // Log error asynchronously
+        await _logger.logError(errorData);
+      }
+
+      // Remove from map
+      await _requestMap.remove(err.requestOptions);
+    });
 
     // Continue with the error
     handler.next(err);
-  }
-
-  /// Generates a unique request ID
-  String _generateRequestId() {
-    return '${DateTime.now().millisecondsSinceEpoch}_${DateTime.now().microsecond}';
   }
 
   /// Extracts headers from Dio headers map
@@ -160,7 +171,10 @@ class HttpMonitorDioInterceptor extends Interceptor {
       // For other types, convert to string
       return data.toString();
     } catch (e) {
-      return {'error': 'Failed to extract request body', 'type': data.runtimeType.toString()};
+      return {
+        'error': 'Failed to extract request body',
+        'type': data.runtimeType.toString()
+      };
     }
   }
 
@@ -191,7 +205,10 @@ class HttpMonitorDioInterceptor extends Interceptor {
       // For other types, convert to string
       return data.toString();
     } catch (e) {
-      return {'error': 'Failed to extract response body', 'type': data.runtimeType.toString()};
+      return {
+        'error': 'Failed to extract response body',
+        'type': data.runtimeType.toString()
+      };
     }
   }
 
@@ -221,12 +238,14 @@ class HttpMonitorDioInterceptor extends Interceptor {
   /// Clears the request map
   ///
   /// This is useful for cleanup or testing purposes.
-  void clearRequestMap() {
-    _requestMap.clear();
+  Future<void> clearRequestMap() async {
+    await _requestMap.clear();
   }
 
   /// Gets the count of pending requests
-  int get pendingRequestCount => _requestMap.length;
+  Future<int> get pendingRequestCount async {
+    return await _requestMap.length;
+  }
 }
 
 /// Internal class to track request information

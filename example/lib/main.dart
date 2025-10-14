@@ -43,6 +43,7 @@ class _HomePageState extends State<HomePage> {
   late Dio _dio;
   late http.Client _httpClient;
   bool _isLoading = false;
+  bool _isConcurrentLoading = false;
 
   @override
   void initState() {
@@ -86,6 +87,72 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _makeConcurrentRequests() async {
+    setState(() => _isConcurrentLoading = true);
+    try {
+      final stopwatch = Stopwatch()..start();
+
+      // Test concurrent requests with Future.wait
+      await Future.wait([
+        _dio.get('https://jsonplaceholder.typicode.com/posts/1'),
+        _dio.get('https://jsonplaceholder.typicode.com/posts/2'),
+        _dio.get('https://jsonplaceholder.typicode.com/posts/3'),
+        _dio.get('https://jsonplaceholder.typicode.com/posts/4'),
+        _dio.get('https://jsonplaceholder.typicode.com/posts/5'),
+        _dio.post('https://jsonplaceholder.typicode.com/posts', data: {
+          'title': 'Test Post',
+          'body': 'Test body',
+          'userId': 1,
+        }),
+        _httpClient
+            .get(Uri.parse('https://jsonplaceholder.typicode.com/users/1')),
+        _httpClient
+            .get(Uri.parse('https://jsonplaceholder.typicode.com/users/2')),
+      ]);
+
+      stopwatch.stop();
+
+      _showSnack(
+          'Concurrent requests completed in ${stopwatch.elapsedMilliseconds}ms');
+    } catch (e) {
+      _showSnack('Error in concurrent requests: $e');
+    } finally {
+      setState(() => _isConcurrentLoading = false);
+    }
+  }
+
+  Future<void> _makeHighConcurrencyTest() async {
+    setState(() => _isConcurrentLoading = true);
+    try {
+      final stopwatch = Stopwatch()..start();
+
+      // High concurrency test with 50 requests
+      final futures = <Future>[];
+
+      for (int i = 1; i <= 50; i++) {
+        futures.add(_dio.get('https://jsonplaceholder.typicode.com/posts/$i'));
+      }
+
+      await Future.wait(futures);
+
+      stopwatch.stop();
+
+      _showSnack(
+          '50 concurrent requests completed in ${stopwatch.elapsedMilliseconds}ms');
+    } catch (e) {
+      _showSnack('Error in high concurrency test: $e');
+    } finally {
+      setState(() => _isConcurrentLoading = false);
+    }
+  }
+
+  Future<void> _showQueueStatus() async {
+    final queueLength = HttpMonitor.instance.logger.queueLength;
+    final pendingCount = await HttpMonitor.instance.logger.pendingRequestCount;
+
+    _showSnack('Queue: $queueLength, Pending: $pendingCount');
+  }
+
   void _showSnack(String msg) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
@@ -95,39 +162,114 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('HTTP Monitor Example')),
-      body: Stack(
-        children: [
-          Center(
-            child: _isLoading
-                ? const CircularProgressIndicator()
-                : ElevatedButton.icon(
-                    onPressed: _makeGetRequest,
-                    icon: const Icon(Icons.download),
-                    label: const Text('Make GET Request (Dio)'),
-                  ),
-          ),
-          FloatingMonitorButton(
-            onPressed: _openMonitor,
-            childBuilder: (size) => Container(
-              width: size,
-              height: size,
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.amber,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 6,
-                    offset: const Offset(2, 3),
-                  ),
-                ],
-              ),
-              child: const Icon(Icons.monitor, color: Colors.white),
-            ),
+      appBar: AppBar(
+        title: const Text('HTTP Monitor Example'),
+        actions: [
+          IconButton(
+            onPressed: _showQueueStatus,
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'Show Queue Status',
           ),
         ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Single request button
+              ElevatedButton.icon(
+                onPressed: _isLoading ? null : _makeGetRequest,
+                icon: _isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.download),
+                label:
+                    Text(_isLoading ? 'Loading...' : 'Make GET Request (Dio)'),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Concurrent requests button
+              ElevatedButton.icon(
+                onPressed:
+                    _isConcurrentLoading ? null : _makeConcurrentRequests,
+                icon: _isConcurrentLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.sync),
+                label: Text(_isConcurrentLoading
+                    ? 'Loading...'
+                    : 'Test Concurrent Requests (8 requests)'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // High concurrency test button
+              ElevatedButton.icon(
+                onPressed:
+                    _isConcurrentLoading ? null : _makeHighConcurrencyTest,
+                icon: _isConcurrentLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.flash_on),
+                label: Text(_isConcurrentLoading
+                    ? 'Loading...'
+                    : 'High Concurrency Test (50 requests)'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              const Text(
+                'Test concurrent request handling\nwith HTTP Monitor',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingMonitorButton(
+        onPressed: _openMonitor,
+        childBuilder: (size) => Container(
+          width: size,
+          height: size,
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.amber,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 6,
+                offset: const Offset(2, 3),
+              ),
+            ],
+          ),
+          child: const Icon(Icons.monitor, color: Colors.white),
+        ),
       ),
     );
   }

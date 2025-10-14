@@ -11,6 +11,7 @@ import '../model/http_request_data.dart';
 import '../model/http_response_data.dart';
 import '../model/http_error_data.dart';
 import 'http_logger.dart';
+import 'database_queue.dart';
 import 'cleanup_service.dart';
 
 /// Singleton class for HTTP monitoring
@@ -58,10 +59,12 @@ class HttpMonitor {
     // Initialize repository
     _repository = HttpLogRepositoryImpl(_database!);
 
-    // Initialize logger
+    // Initialize database queue and logger
+    final dbQueue = DatabaseQueue();
     _logger = HttpLogger(
       repository: _repository!,
       config: _config!,
+      dbQueue: dbQueue,
     );
 
     // Initialize cleanup service

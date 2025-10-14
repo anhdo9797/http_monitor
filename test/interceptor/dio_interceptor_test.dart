@@ -39,7 +39,7 @@ void main() {
 
     tearDown(() async {
       await repository.clearAllLogs();
-      logger.clearPendingRequests();
+      await logger.clearPendingRequests();
       interceptor.clearRequestMap();
       await database.close();
     });
@@ -253,12 +253,13 @@ void main() {
     group('headers extraction', () {
       test('should capture request headers', () async {
         try {
-          await dio.get('/posts/1', options: Options(
-            headers: {
-              'X-Custom-Header': 'test-value',
-              'Accept': 'application/json',
-            },
-          ));
+          await dio.get('/posts/1',
+              options: Options(
+                headers: {
+                  'X-Custom-Header': 'test-value',
+                  'Accept': 'application/json',
+                },
+              ));
         } catch (_) {
           // Ignore network errors
         }
@@ -275,14 +276,14 @@ void main() {
 
     group('pending requests tracking', () {
       test('should track pending requests', () async {
-        expect(interceptor.pendingRequestCount, 0);
+        expect(await interceptor.pendingRequestCount, 0);
 
         // Start a request but don't await it immediately
         final future = dio.get('/posts/1');
 
         // There might be a pending request
         // (timing dependent, so we just check it's >= 0)
-        expect(interceptor.pendingRequestCount, greaterThanOrEqualTo(0));
+        expect(await interceptor.pendingRequestCount, greaterThanOrEqualTo(0));
 
         try {
           await future;
@@ -293,7 +294,7 @@ void main() {
         await Future.delayed(const Duration(milliseconds: 200));
 
         // After completion, pending count should be 0
-        expect(interceptor.pendingRequestCount, 0);
+        expect(await interceptor.pendingRequestCount, 0);
       });
 
       test('should clear request map', () async {
@@ -306,9 +307,8 @@ void main() {
         await Future.delayed(const Duration(milliseconds: 50));
 
         interceptor.clearRequestMap();
-        expect(interceptor.pendingRequestCount, 0);
+        expect(await interceptor.pendingRequestCount, 0);
       });
     });
   });
 }
-

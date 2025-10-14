@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http_monitor/src/core/http_logger.dart';
 import 'package:http_monitor/src/db/http_log_repository.dart';
 import 'package:http_monitor/src/db/http_monitor_database.dart';
-import 'package:http_monitor/src/model/http_log.dart';
 import 'package:http_monitor/src/model/http_request_data.dart';
 import 'package:http_monitor/src/model/http_response_data.dart';
 import 'package:http_monitor/src/model/http_error_data.dart';
@@ -31,7 +30,7 @@ void main() {
 
     tearDown(() async {
       await repository.clearAllLogs();
-      logger.clearPendingRequests();
+      await logger.clearPendingRequests();
       await database.close();
     });
 
@@ -91,9 +90,9 @@ void main() {
           timestamp: DateTime.now(),
         );
 
-        expect(logger.pendingRequestCount, 0);
+        expect(await logger.pendingRequestCount, 0);
         await logger.logRequest(request);
-        expect(logger.pendingRequestCount, 1);
+        expect(await logger.pendingRequestCount, 1);
       });
 
       test('should not log when disabled', () async {
@@ -171,7 +170,7 @@ void main() {
         );
 
         await logger.logRequest(request);
-        expect(logger.pendingRequestCount, 1);
+        expect(await logger.pendingRequestCount, 1);
 
         final response = HttpResponseData(
           requestId: requestId,
@@ -185,7 +184,7 @@ void main() {
         await logger.logResponse(response);
         await Future.delayed(const Duration(milliseconds: 100));
 
-        expect(logger.pendingRequestCount, 0);
+        expect(await logger.pendingRequestCount, 0);
       });
 
       test('should handle orphan response', () async {
@@ -327,12 +326,11 @@ void main() {
 
         await logger.logRequest(request1);
         await logger.logRequest(request2);
-        expect(logger.pendingRequestCount, 2);
+        expect(await logger.pendingRequestCount, 2);
 
-        logger.clearPendingRequests();
-        expect(logger.pendingRequestCount, 0);
+        await logger.clearPendingRequests();
+        expect(await logger.pendingRequestCount, 0);
       });
     });
   });
 }
-

@@ -4,9 +4,11 @@ library;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../core/http_logger.dart';
+import '../core/thread_safe_map.dart';
 import '../model/http_request_data.dart';
 import '../model/http_response_data.dart';
 import '../model/http_error_data.dart';
+import '../utils/request_id_generator.dart';
 
 /// HTTP Client wrapper for capturing HTTP requests and responses
 ///
@@ -15,7 +17,7 @@ import '../model/http_error_data.dart';
 class HttpMonitorClient extends http.BaseClient {
   final http.Client _inner;
   final HttpLogger _logger;
-  final Map<String, _RequestInfo> _requestMap = {};
+  final ThreadSafeMap<String, _RequestInfo> _requestMap;
 
   /// Creates a new HttpMonitorClient instance
   ///
@@ -25,21 +27,25 @@ class HttpMonitorClient extends http.BaseClient {
     required http.Client client,
     required HttpLogger logger,
   })  : _inner = client,
-        _logger = logger;
+        _logger = logger,
+        _requestMap = ThreadSafeMap<String, _RequestInfo>();
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
-    final requestId = _generateRequestId();
+    final requestId = RequestIdGenerator.generate();
     final timestamp = DateTime.now();
 
     // Store request info for later matching with response
-    _requestMap[requestId] = _RequestInfo(
+    final requestInfo = _RequestInfo(
       id: requestId,
       timestamp: timestamp,
     );
 
+    await _requestMap.put(requestId, requestInfo);
+
     // Extract and log request data
-    final requestData = await _extractRequestData(request, requestId, timestamp);
+    final requestData =
+        await _extractRequestData(request, requestId, timestamp);
     await _logger.logRequest(requestData);
 
     try {
@@ -74,7 +80,7 @@ class HttpMonitorClient extends http.BaseClient {
       );
 
       await _logger.logResponse(responseData);
-      _requestMap.remove(requestId);
+      await _requestMap.remove(requestId);
 
       return newResponse;
     } catch (error, stackTrace) {
@@ -91,7 +97,7 @@ class HttpMonitorClient extends http.BaseClient {
       );
 
       await _logger.logError(errorData);
-      _requestMap.remove(requestId);
+      await _requestMap.remove(requestId);
 
       rethrow;
     }
@@ -204,20 +210,17 @@ class HttpMonitorClient extends http.BaseClient {
     }
   }
 
-  /// Generates a unique request ID
-  String _generateRequestId() {
-    return '${DateTime.now().millisecondsSinceEpoch}_${DateTime.now().microsecond}';
-  }
-
   /// Clears the request map
   ///
   /// This is useful for cleanup or testing purposes.
-  void clearRequestMap() {
-    _requestMap.clear();
+  Future<void> clearRequestMap() async {
+    await _requestMap.clear();
   }
 
   /// Gets the count of pending requests
-  int get pendingRequestCount => _requestMap.length;
+  Future<int> get pendingRequestCount async {
+    return await _requestMap.length;
+  }
 
   @override
   void close() {
