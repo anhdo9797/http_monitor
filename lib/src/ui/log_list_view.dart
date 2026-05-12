@@ -2,8 +2,10 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../model/http_log.dart';
 import '../model/http_log_filter.dart';
+import '../utils/curl_converter.dart';
 
 /// Widget for displaying a list of HTTP logs
 class LogListView extends StatefulWidget {
@@ -125,19 +127,28 @@ class _LogListItem extends StatelessWidget {
             children: [
               // Method and URL row
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildMethodChip(),
                   const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      log.url,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _extractPath(log.url),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    ],
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => _copyCurl(context),
+                    child: Icon(Icons.copy, size: 16, color: Colors.grey[400]),
                   ),
                 ],
               ),
@@ -157,6 +168,44 @@ class _LogListItem extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _copyCurl(BuildContext context) async {
+    try {
+      final curl = CurlConverter.toCurlPretty(log);
+      await Clipboard.setData(ClipboardData(text: curl));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Copied as cURL command'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to copy: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  String _extractPath(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return url;
+    final path = uri.path;
+    return path.isEmpty ? '/' : path;
+  }
+
+  String _extractHost(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null || uri.host.isEmpty) return '';
+    final port = uri.hasPort ? ':${uri.port}' : '';
+    return '${uri.scheme}://${uri.host}$port';
   }
 
   Widget _buildMethodChip() {
@@ -182,24 +231,44 @@ class _LogListItem extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(4),
+        color: color,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color, width: 1),
       ),
       child: Text(
         log.method.toUpperCase(),
         style: TextStyle(
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: FontWeight.bold,
-          color: color,
+          color: Colors.white,
         ),
       ),
     );
   }
 
   Widget _buildStatusChip() {
+    // Pending state: response hasn't arrived yet
+    if (log.statusCode == 0) {
+      return IntrinsicWidth(
+        child: Row(
+          children: [
+            _PendingDot(),
+            const SizedBox(width: 4),
+            const Text(
+              'Pending...',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     Color color;
     if (log.isSuccessful) {
       color = Colors.green;
@@ -213,24 +282,37 @@ class _LogListItem extends StatelessWidget {
       color = Colors.grey;
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        '${log.statusCode}',
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: color,
-        ),
+    return IntrinsicWidth(
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '${log.statusCode}',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildDurationChip() {
+    // Hide duration for pending requests
+    if (log.statusCode == 0) {
+      return const SizedBox.shrink();
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -274,6 +356,49 @@ class _LogListItem extends StatelessWidget {
       style: const TextStyle(
         fontSize: 12,
         color: Colors.grey,
+      ),
+    );
+  }
+}
+
+/// Animated pulsing dot for pending request state
+class _PendingDot extends StatefulWidget {
+  @override
+  State<_PendingDot> createState() => _PendingDotState();
+}
+
+class _PendingDotState extends State<_PendingDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.3, end: 1.0).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _animation,
+      child: Container(
+        width: 8,
+        height: 8,
+        decoration: const BoxDecoration(
+          color: Colors.grey,
+          shape: BoxShape.circle,
+        ),
       ),
     );
   }

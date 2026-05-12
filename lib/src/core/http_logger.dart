@@ -42,12 +42,17 @@ class HttpLogger {
   Future<void> logRequest(HttpRequestData request) async {
     if (!_config.enabled) return;
 
+    // Completer used so that response/error handlers can await the insert
+    // completing (avoids race when response arrives before insert finishes).
+    final logCompleter = Completer<HttpLog?>();
+
     // Store pending request for later matching with response
     await _pendingRequests.put(
         request.id,
         _PendingRequest(
           request: request,
           timestamp: request.timestamp,
+          logCompleter: logCompleter,
         ));
 
     // Create initial log entry (without response data)
@@ -63,23 +68,27 @@ class HttpLogger {
       createdAt: request.timestamp,
     );
 
-    // Store using database queue with retry mechanism
-    await RetryHelper.withRetry(() async {
-      return await _dbQueue.enqueue(() async {
-        return await _repository.insertLog(log);
-      }, operationName: 'InsertLog_${request.id}');
-    }).then((id) async {
+    try {
+      // Store using database queue with retry mechanism
+      final id = await RetryHelper.withRetry(() async {
+        return await _dbQueue.enqueue(() async {
+          return await _repository.insertLog(log);
+        }, operationName: 'InsertLog_${request.id}');
+      });
+
       final logWithId = log.copyWith(id: id);
 
-      // Update pending request with the stored log
+      // Update pending request with the stored log (if still pending)
       await _pendingRequests.updateIfExists(request.id, (pending) {
         return pending.copyWith(log: logWithId);
       });
-    }).catchError((error) {
+
+      if (!logCompleter.isCompleted) logCompleter.complete(logWithId);
+    } catch (error) {
       // Silently fail - don't break the application flow
-      // But we can add logging here for debugging
       developer.log('Failed to store request log: $error');
-    });
+      if (!logCompleter.isCompleted) logCompleter.complete(null);
+    }
   }
 
   /// Logs an HTTP response
@@ -95,8 +104,16 @@ class HttpLogger {
       return;
     }
 
+    // Wait for the initial insert to complete if it hasn't already.
+    // Without this, responses arriving before insertLog finishes were silently
+    // dropped, leaving rows with statusCode=0 / duration=0.
+    HttpLog? baseLog = pending.log;
+    if (baseLog == null && pending.logCompleter != null) {
+      baseLog = await pending.logCompleter!.future;
+    }
+
     // Update the log with response data
-    final updatedLog = pending.log?.copyWith(
+    final updatedLog = baseLog?.copyWith(
       response: _config.logResponseBody ? _truncateBody(response.body) : null,
       statusCode: response.statusCode,
       duration: response.duration,
@@ -130,6 +147,12 @@ class HttpLogger {
       return;
     }
 
+    // Wait for the initial insert to complete if it hasn't already.
+    HttpLog? baseLog = pending.log;
+    if (baseLog == null && pending.logCompleter != null) {
+      baseLog = await pending.logCompleter!.future;
+    }
+
     // Update the log with error data
     final errorResponse = {
       'error': error.message,
@@ -138,7 +161,7 @@ class HttpLogger {
       if (error.body != null) 'body': error.body,
     };
 
-    final updatedLog = pending.log?.copyWith(
+    final updatedLog = baseLog?.copyWith(
       response: _truncateBody(errorResponse),
       statusCode: error.statusCode ?? 0,
       duration: error.duration,
@@ -297,21 +320,29 @@ class _PendingRequest {
   final DateTime timestamp;
   final HttpLog? log;
 
+  /// Completes once the initial insertLog has finished (or failed).
+  /// Allows response/error handlers to await the row id before updating,
+  /// preventing dropped updates under heavy concurrent load.
+  final Completer<HttpLog?>? logCompleter;
+
   _PendingRequest({
     required this.request,
     required this.timestamp,
     this.log,
+    this.logCompleter,
   });
 
   _PendingRequest copyWith({
     HttpRequestData? request,
     DateTime? timestamp,
     HttpLog? log,
+    Completer<HttpLog?>? logCompleter,
   }) {
     return _PendingRequest(
       request: request ?? this.request,
       timestamp: timestamp ?? this.timestamp,
       log: log ?? this.log,
+      logCompleter: logCompleter ?? this.logCompleter,
     );
   }
 }

@@ -1,3 +1,13 @@
+## 0.0.4
+
+### 🐛 Bug Fixes
+
+* **Race Condition Fix**: Fixed a race condition where responses arriving before the initial database insert completed were silently dropped, leaving log entries with `statusCode: 0` and `duration: 0ms`. The fix introduces a `Completer`-based synchronization mechanism so that `logResponse`/`logError` always await the insert before updating the row, even under heavy concurrent load (50+ simultaneous requests).
+
+### 🎨 UI Improvements
+
+* **Pending State Display**: When a request is still awaiting its response (`statusCode == 0`), the UI now shows "Pending..." with a subtle animated indicator instead of the confusing "● 0 / 0ms" display.
+
 ## 0.0.3
 
 ### 🚀 Concurrent Request Handling

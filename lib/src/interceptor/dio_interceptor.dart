@@ -168,8 +168,12 @@ class HttpMonitorDioInterceptor extends Interceptor {
         }
       }
 
-      // For other types, convert to string
-      return data.toString();
+      // For model objects (e.g. Retrofit @Body()), try toJson() via jsonEncode
+      try {
+        return jsonDecode(jsonEncode(data));
+      } catch (_) {
+        return data.toString();
+      }
     } catch (e) {
       return {
         'error': 'Failed to extract request body',
