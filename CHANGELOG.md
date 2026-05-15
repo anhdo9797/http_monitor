@@ -1,3 +1,9 @@
+## 0.0.5
+
+### 🎨 UI Improvements
+
+* **Log List Item**: Improved alignment of method chip, URL pill, and copy icon — all elements now share equal height using `IntrinsicHeight` with vertical stretching. Increased horizontal padding on the URL pill for better readability.
+
 ## 0.0.4
 
 ### 🐛 Bug Fixes

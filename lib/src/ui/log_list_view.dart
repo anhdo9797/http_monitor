@@ -126,31 +126,40 @@ class _LogListItem extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Method and URL row
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildMethodChip(),
-                  const SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _extractPath(log.url),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildMethodChip(),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          _extractPath(log.url),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ],
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () => _copyCurl(context),
-                    child: Icon(Icons.copy, size: 16, color: Colors.grey[400]),
-                  ),
-                ],
+                    ),
+                    const SizedBox(width: 4),
+                    Center(
+                      child: GestureDetector(
+                        onTap: () => _copyCurl(context),
+                        child:
+                            Icon(Icons.copy, size: 16, color: Colors.grey[400]),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 8),
               // Status code and duration row
@@ -231,16 +240,17 @@ class _LogListItem extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color, width: 1),
       ),
+      alignment: Alignment.center,
       child: Text(
         log.method.toUpperCase(),
         style: TextStyle(
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
