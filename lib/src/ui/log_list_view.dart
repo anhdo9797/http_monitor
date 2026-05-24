@@ -115,6 +115,7 @@ class _LogListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: InkWell(
@@ -137,7 +138,7 @@ class _LogListItem extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.grey[300],
+                          color: colorScheme.onSurface.withOpacity(0.05),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         alignment: Alignment.centerLeft,
@@ -147,6 +148,8 @@ class _LogListItem extends StatelessWidget {
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ),

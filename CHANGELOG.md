@@ -1,3 +1,9 @@
+## 0.0.6
+
+### 🎨 UI Improvements
+
+* **Log List Item**: Updated the method chip background to use the active theme color scheme and constrained method text to a single line with ellipsis for better layout stability.
+
 ## 0.0.5
 
 ### 🎨 UI Improvements

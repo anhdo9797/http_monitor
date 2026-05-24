@@ -1,6 +1,6 @@
 name: http_monitor
 description: A comprehensive HTTP tracking and debugging solution for Flutter. Monitor, store, and analyze all HTTP requests and responses with SQLite storage and beautiful UI.
-version: 0.0.5
+version: 0.0.6
 homepage: https://github.com/anhdo9797/http_monitor
 repository: https://github.com/anhdo9797/http_monitor
 issue_tracker: https://github.com/anhdo9797/http_monitor/issues
